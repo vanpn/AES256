@@ -11,7 +11,7 @@ int main()
 	cout<<"Podaj tekst do zakodowania:\n";
 	string tekst;
 	getline(cin,tekst);
-		string AES_KEY = "012345678901234567890123456789xy";
+		string AES_KEY = "000102030405060708090a0b0c0d0e0f";
 		string szyfr = sAes256Encrypt(tekst, AES_KEY);
 		cout << "\nZaszyfrowany tekst: " << szyfr << "\n";
 		cout << "\nOdszyfrowany tekst: " << sAes256Decrypt(szyfr, AES_KEY) << "\n";

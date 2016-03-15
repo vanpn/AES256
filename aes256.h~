@@ -21,7 +21,7 @@
 
 //Added aligned std::string input/output - Jacek Caban 2016
 #include <string>
-#include <stdexcept>
+#include <stdexcept.h>
 
 
 #ifndef uint8_t

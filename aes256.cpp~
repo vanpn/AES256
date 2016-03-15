@@ -401,7 +401,7 @@ void aes256_decrypt_ecb(aes256_context *ctx, uint8_t *buf)
 
 void copyStringToChar(std::string& sInput, int iNum, int iPos, char* pcArray) {
 	if (iNum > sInput.size() || iPos > sInput.size()) throw std::out_of_range("Out of range");
-	if (pcArray == nullptr) throw std::invalid_argument("Wrong pointer to array");
+	if (pcArray == nullptr) throw std::exception("Wrong pointer to array");
 	for (int i = iPos; i < iNum + iPos; i++)
 	{
 		pcArray[i - iPos] = sInput.at(i);
@@ -413,70 +413,42 @@ std::string sAes256Encrypt(std::string& sInput, std::string& sKey){
     int iPartCounter = sInput.size()/BLOCK;
     char** pcInput;
     int iNumberOfRest = sInput.size()% BLOCK;
-	bool bRest = iNumberOfRest > 0;
- 
-	if (bRest) {
-		pcInput = new char *[iPartCounter + 1];
-		for (int i = 0; i<iPartCounter+1; i++) {
-			pcInput[i] = new char[BLOCK] {};
-		}
-	}
-	else {
-		pcInput = new char *[iPartCounter];
-		for (int i = 0; i<iPartCounter; i++) {
-			pcInput[i] = new char[BLOCK] {};
-		}
-	}
+    if(iNumberOfRest > 0) {
+        iPartCounter++;
+    }
+    pcInput = new char *[iPartCounter];
+    for(int i=0;i<iPartCounter;i++){
+		pcInput[i] = new char[BLOCK];
+    }
 
     //copying to array (full blocks)
-    for(int i =0;i<iPartCounter;i++){
+    for(int i =0;i<iPartCounter-1;i++){
 		copyStringToChar(sInput, BLOCK, i * BLOCK, pcInput[i]);
     }
 	//rest
-	if (bRest) {
-		copyStringToChar(sInput, iNumberOfRest, iPartCounter * BLOCK, pcInput[iPartCounter]);
-		//add suplements
-		for (int i = iNumberOfRest; i<BLOCK; i++) {
-			pcInput[iPartCounter][i] = supplement;
+	copyStringToChar(sInput, iNumberOfRest, (iPartCounter - 1) * BLOCK, pcInput[iPartCounter - 1]);
+
+    //add suplements
+    for(int i=iNumberOfRest;i<BLOCK;i++){
+        pcInput[iPartCounter-1][i]=supplement;
+    }
+
+    std::string sResult;
+    for(int i=0;i<iPartCounter;i++){
+		//encrypt block
+        aes256_context ctx;
+        aes256_init(&ctx,(unsigned char*)sKey.c_str());
+        aes256_encrypt_ecb(&ctx,(unsigned char*)pcInput[i]);
+		//append to string
+		for (int j = 0; j < BLOCK; j++) {
+			sResult += pcInput[i][j];
 		}
-	}
-     std::string sResult;
 
-		//encrypt blocks
-	 if (bRest)
-	 {
-		 for (int i = 0; i<iPartCounter+1; i++) {
-			 aes256_context ctx;
-			 aes256_init(&ctx, (unsigned char*)sKey.c_str());
-			 aes256_encrypt_ecb(&ctx, (unsigned char*)pcInput[i]);
-			 //append to string
-			 for (int j = 0; j < BLOCK; j++) {
-				 sResult += pcInput[i][j];
-			 }
-
-		 }
-		 //removing char's arrays
-		 for (int i = 0; i<iPartCounter+1; i++) {
-			 delete[] pcInput[i];
-		 }
-	 }
-	 else
-	 {
-		 for (int i = 0; i<iPartCounter; i++) {
-			 aes256_context ctx;
-			 aes256_init(&ctx, (unsigned char*)sKey.c_str());
-			 aes256_encrypt_ecb(&ctx, (unsigned char*)pcInput[i]);
-			 //append to string
-			 for (int j = 0; j < BLOCK; j++) {
-				 sResult += pcInput[i][j];
-			 }
-
-		 }
-		 //removing char's arrays
-		 for (int i = 0; i<iPartCounter; i++) {
-			 delete[] pcInput[i];
-		 }
-	 }
+    }
+        //removing char's arrays
+    for(int i=0;i<iPartCounter;i++){
+        delete[] pcInput[i];
+    }
     delete[] pcInput;
     return sResult;
 }
@@ -489,7 +461,7 @@ std::string sAes256Decrypt(std::string& sInput,std::string& sKey){
 
     pcInput = new char *[iPartCounter];
     for(int i=0;i<iPartCounter;i++){
-		pcInput[i] = new char[BLOCK];
+		pcInput[i] = new char[BLOCK]{};
     }
 
 	//copying to array (all blocks)
@@ -498,10 +470,10 @@ std::string sAes256Decrypt(std::string& sInput,std::string& sKey){
     }
 
     std::string sResult;
-	aes256_context ctx;
-	aes256_init(&ctx, (unsigned char*)sKey.c_str());
     for(int i=0;i<iPartCounter;i++){
 		//decrypting block
+        aes256_context ctx;
+        aes256_init(&ctx,(unsigned char*)sKey.c_str());
         aes256_decrypt_ecb(&ctx,(unsigned char*)pcInput[i]);
 		//append block to string
 		for (int j = 0; j < BLOCK; j++) {
